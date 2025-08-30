@@ -1,7 +1,6 @@
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
 import faiss
-import numpy as np
 
 model_embed = SentenceTransformer("all-MiniLM-L6-v2")
 rag_pipeline = pipeline("text2text-generation", model="google/flan-t5-small")

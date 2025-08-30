@@ -1,9 +1,9 @@
+import os
+import mysql.connector
+
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
-import mysql.connector
-import os
-from werkzeug.utils import secure_filename
 
 from rag.retriever import extract_text_from_file
 from rag.generator import generate_questions
@@ -39,6 +39,7 @@ def allowed_file(filename):
 
 @app.route("/signup", methods=["POST"])
 def signup():
+    ''' Handles Sign Up Route  '''
     data = request.json
     conn = get_db()
     cursor = conn.cursor()
