@@ -1,50 +1,62 @@
 import React, { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 
-function Signup() {
-  const [form, setForm] = useState({});
+function SignupPage() {
+  const [form, setForm] = useState({
+    first_name: "", last_name: "", email: "", password: "", confirm_password: "",
+    address: "", city: "", state: "", country: "", pincode: "",
+    education: "", work_experience: "",
+    authorized: "", sponsorship: "", gender: "", community: "", veteran: ""
+  });
+
+  const navigate = useNavigate();
+
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await axios.post("http://localhost:5000/signup", form);
-    alert("Signup successful!");
+    if (form.password !== form.confirm_password) {
+      alert("Passwords do not match!");
+      return;
+    }
+    try {
+      await axios.post("http://127.0.0.1:5000/signup", form);
+      alert("Signup successful!");
+      navigate("/login");
+    } catch (err) {
+      alert("Signup failed.");
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h2>Signup</h2>
-      <input name="first_name" placeholder="First Name" onChange={handleChange} required />
-      <input name="last_name" placeholder="Last Name" onChange={handleChange} required />
-      <input name="email" type="email" placeholder="Email" onChange={handleChange} required />
-      <input name="password" type="password" placeholder="Password" onChange={handleChange} required />
-      <input name="address" placeholder="Address" onChange={handleChange} />
-      <input name="city" placeholder="City" onChange={handleChange} />
-      <input name="state" placeholder="State" onChange={handleChange} />
-      <input name="country" placeholder="Country" onChange={handleChange} />
-      <input name="pincode" placeholder="Pincode" onChange={handleChange} />
-      <input name="education" placeholder="Education" onChange={handleChange} />
-      <input name="work_experience" placeholder="Work Experience" onChange={handleChange} />
-      <select name="authorized_work" onChange={handleChange}>
-        <option value="">Authorized to work?</option>
-        <option value="1">Yes</option>
-        <option value="0">No</option>
-      </select>
-      <select name="sponsorship_required" onChange={handleChange}>
-        <option value="">Require sponsorship?</option>
-        <option value="1">Yes</option>
-        <option value="0">No</option>
-      </select>
-      <input name="gender" placeholder="Gender" onChange={handleChange} />
-      <input name="community" placeholder="Community" onChange={handleChange} />
-      <select name="protected_veteran" onChange={handleChange}>
-        <option value="">Protected Veteran?</option>
-        <option value="1">Yes</option>
-        <option value="0">No</option>
-      </select>
-      <button type="submit">Signup</button>
-    </form>
+    <div>
+      <h2>Sign Up</h2>
+      <form onSubmit={handleSubmit}>
+        <input type="text" name="first_name" placeholder="First Name" onChange={handleChange} />
+        <input type="text" name="last_name" placeholder="Last Name" onChange={handleChange} />
+        <input type="email" name="email" placeholder="Email" onChange={handleChange} />
+        <input type="password" name="password" placeholder="Password" onChange={handleChange} />
+        <input type="password" name="confirm_password" placeholder="Confirm Password" onChange={handleChange} />
+        <input type="text" name="address" placeholder="Address" onChange={handleChange} />
+        <input type="text" name="city" placeholder="City" onChange={handleChange} />
+        <input type="text" name="state" placeholder="State" onChange={handleChange} />
+        <input type="text" name="country" placeholder="Country" onChange={handleChange} />
+        <input type="text" name="pincode" placeholder="Pincode" onChange={handleChange} />
+        <input type="text" name="education" placeholder="Education" onChange={handleChange} />
+        <input type="text" name="work_experience" placeholder="Work Experience" onChange={handleChange} />
+        <input type="text" name="authorized" placeholder="Legally authorized to work?" onChange={handleChange} />
+        <input type="text" name="sponsorship" placeholder="Require sponsorship?" onChange={handleChange} />
+        <input type="text" name="gender" placeholder="Gender" onChange={handleChange} />
+        <input type="text" name="community" placeholder="Community" onChange={handleChange} />
+        <input type="text" name="veteran" placeholder="Protected veteran?" onChange={handleChange} />
+        <button type="submit">Sign Up</button>
+      </form>
+      <p>
+        Already have an account? <Link to="/login">Login here</Link>
+      </p>
+    </div>
   );
 }
 
-export default Signup;
+export default SignupPage;
