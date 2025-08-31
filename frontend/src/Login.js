@@ -13,7 +13,7 @@ function Login() {
     try {
       const res = await axios.post("http://localhost:5000/login", form);
       localStorage.setItem("userEmail", res.data.user.email);
-      navigate("/profile");
+      navigate("/application");
     } catch {
       alert("Invalid credentials");
     }
@@ -29,6 +29,7 @@ function Login() {
       </form>
       <p>
         Don’t have an account? <Link to="/Signup">Sign up here</Link>
+        Want to go to Application page? <Link to="/application">Click here</Link>
       </p>
     </div>
   );
