@@ -8,7 +8,10 @@ function Application() {
   const [Email, setEmail] = useState("");
   const [workExp, setWorkExp] = useState("");
   const [education, setEducation] = useState("");
-
+  const [Address, setAddress] = useState("");
+  const [State, setState] = useState("");
+  const [City, setCity] = useState("");
+  const [ZipCode, setZipCode] = useState("");
 
   return (
     <div>
@@ -26,6 +29,14 @@ function Application() {
         <textarea value={workExp} onChange={(e) => setWorkExp(e.target.value)} /><br />
         <label>Education</label><br />
         <textarea value={education} onChange={(e) => setEducation(e.target.value)} /><br />
+        <label>Address</label><br />
+        <textarea value={Address} onChange={(e) => setAddress(e.target.value)} /><br />
+        <label>State</label><br />
+        <textarea value={State} onChange={(e) => setState(e.target.value)} /><br />
+        <label>City</label><br />
+        <textarea value={City} onChange={(e) => setCity(e.target.value)} /><br />
+        <label>ZipCode</label><br />
+        <textarea value={ZipCode} onChange={(e) => setZipCode(e.target.value)} /><br />
       </form>
     </div>
   );
