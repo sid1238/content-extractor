@@ -12,6 +12,9 @@ function Application() {
   const [State, setState] = useState("");
   const [City, setCity] = useState("");
   const [ZipCode, setZipCode] = useState("");
+  const [Community, setCommunity] = useState("");
+  const [Gender, setGender] = useState("");
+  const [Disability, setDisability] = useState("");
 
   return (
     <div>
@@ -37,6 +40,12 @@ function Application() {
         <textarea value={City} onChange={(e) => setCity(e.target.value)} /><br />
         <label>ZipCode</label><br />
         <textarea value={ZipCode} onChange={(e) => setZipCode(e.target.value)} /><br />
+        <label>Community</label><br />
+        <textarea value={Community} onChange={(e) => setCommunity(e.target.value)} /><br />
+        <label>Gender</label><br />
+        <textarea value={Gender} onChange={(e) => setGender(e.target.value)} /><br />
+        <label>Disability</label><br />
+        <textarea value={Disability} onChange={(e) => setDisability(e.target.value)} /><br />
       </form>
     </div>
   );
