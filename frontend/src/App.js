@@ -1,26 +1,21 @@
-import React from 'react';
-import UploadForm from './UploadForm';
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Signup from "./Signup";
-import Login from "./Login";
-import Application from "./Application";
-import FindMatch from "./FindMatch";
-import Profile from "./Profile";
-import LogoutPage from "./LogoutPage";
+import React from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Header from "./Header";
+import Jobs from "./pages/Jobs";
+import Resumes from "./pages/Resumes";
+import "./App.css";
 
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/application" element={<Application />} />
-        <Route path="/find-match" element={<FindMatch />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/upload" element={<UploadForm />} />
-        <Route path="/logout" element={<LogoutPage />} />
-      </Routes>
+      <Header />
+      <main className="page">
+        <Routes>
+          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/resumes" element={<Resumes />} />
+          <Route path="*" element={<Navigate to="/jobs" replace />} />
+        </Routes>
+      </main>
     </Router>
   );
 }
