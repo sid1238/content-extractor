@@ -1,11 +1,11 @@
 import React from "react";
 import jobs from "../data/jobs";
 
-function Jobs() {
+function FindMatch() {
   return (
     <section>
       <div className="page-head">
-        <h1>Jobs</h1>
+        <h1>Find Match</h1>
         <p>{jobs.length} open roles</p>
       </div>
       <div className="card-grid">
@@ -43,4 +43,4 @@ function Jobs() {
   );
 }
 
-export default Jobs;
+export default FindMatch;

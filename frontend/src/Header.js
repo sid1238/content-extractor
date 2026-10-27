@@ -5,12 +5,14 @@ function Header() {
   return (
     <header className="topbar">
       <div className="topbar-inner">
-        <NavLink to="/jobs" className="brand">
+        <NavLink to="/find-match" className="brand">
           <span className="brand-mark">CE</span>
           Content Extractor
         </NavLink>
         <nav className="topbar-nav">
-          <NavLink to="/jobs" className="nav-link">Jobs</NavLink>
+          <NavLink to="/application" className="nav-link">Application</NavLink>
+          <NavLink to="/find-match" className="nav-link">Find Match</NavLink>
+          <NavLink to="/profile" className="nav-link">Profile</NavLink>
           <NavLink to="/resumes" className="nav-link">Resumes</NavLink>
         </nav>
       </div>

@@ -1,7 +1,9 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Header from "./Header";
-import Jobs from "./pages/Jobs";
+import Application from "./pages/Application";
+import FindMatch from "./pages/FindMatch";
+import Profile from "./pages/Profile";
 import Resumes from "./pages/Resumes";
 import "./App.css";
 
@@ -11,9 +13,11 @@ function App() {
       <Header />
       <main className="page">
         <Routes>
-          <Route path="/jobs" element={<Jobs />} />
+          <Route path="/application" element={<Application />} />
+          <Route path="/find-match" element={<FindMatch />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/resumes" element={<Resumes />} />
-          <Route path="*" element={<Navigate to="/jobs" replace />} />
+          <Route path="*" element={<Navigate to="/find-match" replace />} />
         </Routes>
       </main>
     </Router>
