@@ -5,8 +5,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 
-from rag.retriever import extract_text_from_file
+from rag.retriever import extract_text_from_file, extract_text_from_upload
 from rag.generator import generate_questions
+from rag.matcher import fetch_job_posting, match_resume_to_job, JobFetchError
 
 app = Flask(__name__)
 CORS(app)
@@ -116,6 +117,39 @@ def upload_file():
         return jsonify({"questions": questions})
 
     return jsonify({"error": "Invalid file format. Use .txt, .pdf, or .docx"}), 400
+
+# ====================
+# JOB MATCH ROUTE
+# ====================
+
+@app.route('/match', methods=['POST'])
+def match_job():
+    ''' Compares an uploaded resume against the job posting at job_url '''
+    file = request.files.get('resume')
+    job_url = (request.form.get('job_url') or '').strip()
+
+    if not file or not file.filename:
+        return jsonify({"error": "Upload a resume first."}), 400
+    if not allowed_file(file.filename):
+        return jsonify({"error": "Invalid file format. Use .txt, .pdf, or .docx"}), 400
+    if not job_url:
+        return jsonify({"error": "Enter a job URL."}), 400
+
+    try:
+        resume_text = extract_text_from_upload(file)
+    except Exception:
+        return jsonify({"error": "Could not read the resume file."}), 400
+    if len(resume_text.strip()) < 50:
+        return jsonify({"error": "No text found in the resume. If it is a scanned PDF, upload a text-based PDF or .docx."}), 400
+
+    try:
+        job = fetch_job_posting(job_url)
+    except JobFetchError as err:
+        return jsonify({"error": str(err)}), 422
+
+    result = match_resume_to_job(resume_text, job)
+    result["job"]["url"] = job_url
+    return jsonify(result)
 
 
 if __name__ == "__main__":

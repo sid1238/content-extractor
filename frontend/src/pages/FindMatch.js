@@ -1,13 +1,16 @@
 import React from "react";
 import jobs from "../data/jobs";
+import ResumeMatcher from "../components/ResumeMatcher";
 
 function FindMatch() {
   return (
     <section>
       <div className="page-head">
         <h1>Find Match</h1>
-        <p>{jobs.length} open roles</p>
+        <p>Check how well your resume fits any job posting, or browse open roles below</p>
       </div>
+      <ResumeMatcher />
+      <h2 className="section-title">Open roles <span className="count">{jobs.length}</span></h2>
       <div className="card-grid">
         {jobs.map((job) => (
           <article key={job.id} className="card job-card">
