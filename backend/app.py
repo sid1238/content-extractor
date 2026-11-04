@@ -5,9 +5,10 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from flask_bcrypt import Bcrypt
 
-from rag.retriever import extract_text_from_file, extract_text_from_upload
+from rag.retriever import extract_text_from_file, read_resume_upload
 from rag.generator import generate_questions
 from rag.matcher import fetch_job_posting, match_resume_to_job, JobFetchError
+from rag.ats import scan_resume
 
 app = Flask(__name__)
 CORS(app)
@@ -16,6 +17,8 @@ bcrypt = Bcrypt(app)
 # ---- File Upload Config ----
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'docx'}
+RESUME_EXTENSIONS = {'pdf', 'docx'}
+MAX_RESUME_BYTES = 2 * 1024 * 1024
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
@@ -33,6 +36,24 @@ def get_db():
 # ---- Helpers ----
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def resume_upload_error(file):
+    ''' Returns (message, status) if the uploaded resume is unacceptable, otherwise None '''
+    if not file or not file.filename:
+        return "Upload a resume first.", 400
+    extension = file.filename.rsplit('.', 1)[-1].lower()
+    if extension == 'doc':
+        return "Older .doc files aren't supported. In Word, use Save As to make a .docx copy.", 400
+    if extension not in RESUME_EXTENSIONS or '.' not in file.filename:
+        return "Upload your resume as a PDF or Word (.docx) file.", 400
+    file.stream.seek(0, os.SEEK_END)
+    size = file.stream.tell()
+    file.stream.seek(0)
+    if size > MAX_RESUME_BYTES:
+        return "Your resume is larger than the 2 MB limit.", 413
+    if size == 0:
+        return "That file is empty.", 400
+    return None
 
 # ====================
 # AUTH ROUTES
@@ -128,15 +149,14 @@ def match_job():
     file = request.files.get('resume')
     job_url = (request.form.get('job_url') or '').strip()
 
-    if not file or not file.filename:
-        return jsonify({"error": "Upload a resume first."}), 400
-    if not allowed_file(file.filename):
-        return jsonify({"error": "Invalid file format. Use .txt, .pdf, or .docx"}), 400
+    upload_error = resume_upload_error(file)
+    if upload_error:
+        return jsonify({"error": upload_error[0]}), upload_error[1]
     if not job_url:
         return jsonify({"error": "Enter a job URL."}), 400
 
     try:
-        resume_text = extract_text_from_upload(file)
+        resume_text = read_resume_upload(file)["text"]
     except Exception:
         return jsonify({"error": "Could not read the resume file."}), 400
     if len(resume_text.strip()) < 50:
@@ -150,6 +170,26 @@ def match_job():
     result = match_resume_to_job(resume_text, job)
     result["job"]["url"] = job_url
     return jsonify(result)
+
+# ====================
+# ATS SCAN ROUTE
+# ====================
+
+@app.route('/ats-scan', methods=['POST'])
+def ats_scan():
+    ''' Scans an uploaded resume for common ATS red flags '''
+    file = request.files.get('resume')
+
+    upload_error = resume_upload_error(file)
+    if upload_error:
+        return jsonify({"error": upload_error[0]}), upload_error[1]
+
+    try:
+        resume = read_resume_upload(file)
+    except Exception:
+        return jsonify({"error": "Could not read this file. It may be damaged or password-protected."}), 400
+
+    return jsonify(scan_resume(resume))
 
 
 if __name__ == "__main__":

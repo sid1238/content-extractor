@@ -575,7 +575,7 @@
 .matcher-inputs {
   margin-top: 18px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
   gap: 14px;
   align-items: end;
 }
@@ -866,4 +866,231 @@
   margin: 16px 0 0;
   color: var(--muted);
   font-size: 12px;
+}
+
+/* ---------- ATS report ---------- */
+.matcher-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.matcher-actions button {
+  flex: 1 1 auto;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--accent-soft);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.spinner-dark {
+  border-color: rgba(79, 70, 229, 0.25);
+  border-top-color: var(--accent);
+}
+
+.ats-report {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+}
+
+.ats-report-head h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ats-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.sev {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.sev-critical { background: #fdecec; color: #b91c1c; }
+.sev-warning { background: #fff6e5; color: #b45309; }
+.sev-info { background: #e6f4ff; color: #0369a1; }
+.sev-clear { background: #e7f8ef; color: #15803d; }
+
+.ats-section {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.ats-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ats-section-head h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.ats-section-state {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ats-section-state.ok {
+  color: #15803d;
+  font-weight: 600;
+}
+
+.ats-note {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ats-findings {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.ats-finding {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.ats-finding-body {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.ats-finding-body p {
+  margin: 0;
+}
+
+.ats-suggestion {
+  margin-top: 3px !important;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.ats-snippet {
+  margin-top: 6px !important;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: #f5f6fa;
+  color: #3d4158;
+  font-size: 12px;
+}
+
+.balance-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.balance-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 14px;
+}
+
+.balance-meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.balance-tag {
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.balance-tag.unrelated {
+  background: #fff6e5;
+  color: #b45309;
+}
+
+.balance-track {
+  height: 8px;
+  margin-top: 5px;
+  border-radius: 999px;
+  background: #eceef5;
+  overflow: hidden;
+}
+
+.balance-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.balance-fill.unrelated {
+  background: #d97706;
+}
+
+/* The brand and four nav links don't fit on one line on a phone. */
+@media (max-width: 600px) {
+  .topbar-inner {
+    height: auto;
+    padding: 10px 16px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .topbar-nav {
+    width: 100%;
+    gap: 2px;
+    justify-content: space-between;
+  }
+
+  .nav-link {
+    padding: 6px 10px;
+    font-size: 14px;
+  }
 }

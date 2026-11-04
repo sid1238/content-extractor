@@ -1,9 +1,10 @@
+import html
 import ipaddress
 import json
 import re
 import socket
 from datetime import date
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
 from lxml import html as lxml_html
@@ -178,20 +179,20 @@ def _date_point(p):
     return rf"(?:(?P<{p}m>{_MONTH_RE})\.?\s*,?\s*|(?P<{p}n>\d{{1,2}})\s*/\s*)?(?P<{p}y>(?:19|20)\d{{2}})"
 
 
-_DATE_RANGE = re.compile(
+DATE_RANGE = re.compile(
     _date_point("s")
     + r"\s*(?:-|–|—|to|until)\s*"
     + rf"(?:(?P<present>present|current|now|today|date)|{_date_point('e')})",
     re.IGNORECASE,
 )
-_SELF_REPORTED = re.compile(r"(\d{1,2})(?:\.\d)?\s*\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|industry\s+|work\s+|hands-on\s+)?experience", re.IGNORECASE)
-_EDUCATION_WORDS = re.compile(
+SELF_REPORTED = re.compile(r"(\d{1,2})(?:\.\d)?\s*\+?\s*(?:years?|yrs?)\s+(?:of\s+)?(?:professional\s+|industry\s+|work\s+|hands-on\s+)?experience", re.IGNORECASE)
+EDUCATION_WORDS = re.compile(
     r"\b(?:university|college|institute|school|b\.?\s?tech|b\.?\s?e\b|b\.?s\.?c?|m\.?s\.?c?|m\.?\s?tech|bachelor|master|ph\.?d|degree|gpa|cgpa)\b",
     re.IGNORECASE,
 )
 
 
-def _month_index(match, prefix, default_month):
+def month_index(match, prefix, default_month):
     year = int(match.group(f"{prefix}y"))
     if match.group(f"{prefix}m"):
         month = _MONTHS[match.group(f"{prefix}m").lower()]
@@ -202,34 +203,28 @@ def _month_index(match, prefix, default_month):
     return year * 12 + (month - 1)
 
 
-def extract_resume_years(text):
-    """Returns (years, how) for a resume.
-
-    Prefers a self-reported figure ('5+ years of experience'); otherwise adds up
-    the employment date ranges, skipping ones that look like education and
-    merging overlaps so concurrent roles aren't double counted."""
-    reported = [int(m.group(1)) for m in _SELF_REPORTED.finditer(text) if int(m.group(1)) <= 40]
-    if reported:
-        return max(reported), "stated in resume"
-
+def years_from_ranges(text):
+    """Adds up employment date ranges, skipping ones that look like education and
+    merging overlaps so concurrent roles aren't double counted. None if no ranges."""
     today = date.today()
     now = today.year * 12 + (today.month - 1)
     intervals = []
-    for m in _DATE_RANGE.finditer(text):
+    for m in DATE_RANGE.finditer(text):
         # Only look at the line the date sits on: degrees list their dates on the same line,
         # while a job's next line is often an employer like "X University".
         line_start = max(text.rfind("\n", 0, m.start()) + 1, m.start() - 120)
         line_end = text.find("\n", m.end())
         line_end = min(line_end if line_end != -1 else len(text), m.end() + 60)
-        if _EDUCATION_WORDS.search(text[line_start:line_end]):
+        if EDUCATION_WORDS.search(text[line_start:line_end]):
             continue
-        start = _month_index(m, "s", 1)
-        end = now if m.group("present") else _month_index(m, "e", 12)
-        if start <= end <= now + 1:
-            intervals.append((start, end))
+        start = month_index(m, "s", 1)
+        end = now if m.group("present") else month_index(m, "e", 12)
+        # A year-only end in the current year defaults to December, so cap it at today.
+        if start <= end and start <= now:
+            intervals.append((start, min(end, now)))
 
     if not intervals:
-        return None, "not found"
+        return None
 
     intervals.sort()
     total, (cur_start, cur_end) = 0, intervals[0]
@@ -240,10 +235,26 @@ def extract_resume_years(text):
             total += cur_end - cur_start + 1
             cur_start, cur_end = start, end
     total += cur_end - cur_start + 1
-    return round(total / 12, 1), "estimated from work history dates"
+    return round(total / 12, 1)
+
+
+def extract_resume_years(text):
+    """Returns (years, how) for a resume, preferring a self-reported figure
+    ('5+ years of experience') over adding up the employment dates."""
+    reported = [int(m.group(1)) for m in SELF_REPORTED.finditer(text) if int(m.group(1)) <= 40]
+    if reported:
+        return max(reported), "stated in resume"
+
+    years = years_from_ranges(text)
+    if years is None:
+        return None, "not found"
+    return years, "estimated from work history dates"
 
 
 # ---- Job page fetching ----
+
+MAX_REDIRECTS = 5
+
 
 class JobFetchError(Exception):
     pass
@@ -278,7 +289,8 @@ def _job_posting_from_json_ld(tree):
 
 
 def _html_to_text(markup):
-    fragment = lxml_html.fromstring(f"<div>{markup}</div>")
+    # JSON-LD descriptions are usually HTML-escaped, so unescape before parsing the tags.
+    fragment = lxml_html.fromstring(f"<div>{html.unescape(markup)}</div>")
     return fragment.text_content()
 
 
@@ -290,7 +302,15 @@ def fetch_job_posting(url):
         "Accept-Language": "en-US,en;q=0.9",
     }
     try:
-        resp = requests.get(url, headers=headers, timeout=15, allow_redirects=True)
+        # Follow redirects by hand so each hop gets the private-address check too.
+        for _ in range(MAX_REDIRECTS + 1):
+            resp = requests.get(url, headers=headers, timeout=15, allow_redirects=False)
+            if not resp.is_redirect:
+                break
+            url = urljoin(url, resp.headers["Location"])
+            _check_public_url(url)
+        else:
+            raise JobFetchError("The job page redirected too many times.")
     except requests.RequestException as err:
         raise JobFetchError(f"Could not reach the job page: {err.__class__.__name__}")
     if resp.status_code >= 400:
@@ -304,7 +324,9 @@ def fetch_job_posting(url):
         parts = [_html_to_text(posting.get(k, "")) for k in
                  ("description", "qualifications", "skills", "experienceRequirements", "responsibilities")
                  if isinstance(posting.get(k), str)]
-        return {"title": posting.get("title"), "company": company, "text": "\n".join(parts)}
+        text = "\n".join(parts)
+        if text.strip():
+            return {"title": posting.get("title"), "company": company, "text": text}
 
     for bad in tree.xpath("//script|//style|//noscript|//nav|//header|//footer|//svg"):
         bad.drop_tree()

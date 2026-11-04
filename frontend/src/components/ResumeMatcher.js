@@ -1,8 +1,10 @@
 import React, { useRef, useState } from "react";
 import axios from "axios";
+import AtsReport from "./AtsReport";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000";
-const ACCEPTED = [".pdf", ".docx", ".txt"];
+const ACCEPTED = [".pdf", ".docx"];
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
 
 const isValidUrl = (value) => {
   try {
@@ -113,22 +115,35 @@ function ResumeMatcher() {
   const [jobUrl, setJobUrl] = useState("");
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [scanning, setScanning] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [report, setReport] = useState(null);
   const inputRef = useRef(null);
 
   const urlOk = isValidUrl(jobUrl.trim());
-  const canStart = Boolean(file) && urlOk && !loading;
+  const busy = loading || scanning;
+  const canStart = Boolean(file) && urlOk && !busy;
+  const canScan = Boolean(file) && !busy;
 
   const pickFile = (picked) => {
     if (!picked) return;
     const ext = picked.name.slice(picked.name.lastIndexOf(".")).toLowerCase();
+    if (ext === ".doc") {
+      setError("Older .doc files aren't supported. In Word, use Save As to make a .docx copy.");
+      return;
+    }
     if (!ACCEPTED.includes(ext)) {
-      setError("Upload your resume as a .pdf, .docx or .txt file.");
+      setError("Upload your resume as a PDF or Word (.docx) file.");
+      return;
+    }
+    if (picked.size > MAX_FILE_BYTES) {
+      setError("Your resume is larger than the 2 MB limit.");
       return;
     }
     setError("");
     setResult(null);
+    setReport(null);
     setFile(picked);
   };
 
@@ -150,11 +165,28 @@ function ResumeMatcher() {
     }
   };
 
+  const startScan = async () => {
+    if (!canScan) return;
+    setScanning(true);
+    setError("");
+    setReport(null);
+    const form = new FormData();
+    form.append("resume", file);
+    try {
+      const { data } = await axios.post(`${API_BASE}/ats-scan`, form);
+      setReport(data);
+    } catch (err) {
+      setError(err.response?.data?.error || "Could not reach the server. Is the backend running?");
+    } finally {
+      setScanning(false);
+    }
+  };
+
   return (
     <div className="card matcher">
       <div className="matcher-head">
-        <h2>Check your match</h2>
-        <p>Upload your resume and paste a job link to see how well you fit the role.</p>
+        <h2>Check your resume</h2>
+        <p>Upload your resume to scan it for ATS red flags, or add a job link to see how well you fit the role.</p>
       </div>
 
       <div className="matcher-inputs">
@@ -184,7 +216,7 @@ function ResumeMatcher() {
           ) : (
             <span className="dropzone-text">
               <strong>Upload resume</strong>
-              <span>Drag a file here or click · PDF, DOCX, TXT</span>
+              <span>Drag a file here or click · PDF or Word (.docx), up to 2 MB</span>
             </span>
           )}
         </div>
@@ -201,19 +233,27 @@ function ResumeMatcher() {
           {jobUrl && !urlOk && <span className="field-hint">Enter a full link starting with http:// or https://</span>}
         </label>
 
-        <button className="btn-primary" onClick={startMatch} disabled={!canStart}>
-          {loading ? <><span className="spinner" /> Matching…</> : "Start match"}
-        </button>
+        <div className="matcher-actions">
+          <button className="btn-primary" onClick={startMatch} disabled={!canStart}>
+            {loading ? <><span className="spinner" /> Matching…</> : "Start match"}
+          </button>
+          <button className="btn-secondary" onClick={startScan} disabled={!canScan}>
+            {scanning ? <><span className="spinner spinner-dark" /> Scanning…</> : "Scan for ATS issues"}
+          </button>
+        </div>
       </div>
 
-      {!file || !urlOk ? (
-        <p className="matcher-hint">
-          {!file && !urlOk ? "Upload a resume and enter a job URL to start." : !file ? "Upload a resume to start." : "Enter a job URL to start."}
-        </p>
+      {scanning ? (
+        <p className="matcher-hint">Checking your resume. The first scan takes longer while the spelling and grammar checker starts.</p>
+      ) : !file ? (
+        <p className="matcher-hint">Upload a resume to start. The match also needs a job URL.</p>
+      ) : !urlOk ? (
+        <p className="matcher-hint">You can scan your resume now. Enter a job URL to start a match.</p>
       ) : null}
 
       {error && <div className="matcher-error">{error}</div>}
       {result && <MatchResult result={result} />}
+      {report && <AtsReport report={report} />}
     </div>
   );
 }
