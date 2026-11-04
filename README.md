@@ -28,4 +28,10 @@
 
 1. We first have to create an account. whatever fields we enter in the signup page will be stored in the database (we will use MariaDB).
 2. We login into our account. In that page we create 2 buttons. One which fills the content into our fields based on the content that is stored in database. For the 2nd button we upload the file and based on what we uploaded the contents are filled in ProfileForm.js(use retrieve.py).
-3. Once the file is uploaded we will want to generate questions for the resume that has been uploaded(integrate a simple trained model for the tasks). 
+3. Once the file is uploaded we will want to generate questions for the resume that has been uploaded(integrate a simple trained model for the tasks).
+
+6. Tailored resumes need Ollama (https://ollama.com) running on this computer, with the model installed:
+   ollama pull llama3.1
+   To use another model, set RESUME_LLM_MODEL. Resume text stays on this computer.
+
+7. The ATS scan needs Java 17 or newer for its spelling and grammar checker.

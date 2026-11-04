@@ -1,3 +1,4 @@
+import base64
 import os
 import mysql.connector
 
@@ -9,6 +10,7 @@ from rag.retriever import extract_text_from_file, read_resume_upload
 from rag.generator import generate_questions
 from rag.matcher import fetch_job_posting, match_resume_to_job, JobFetchError
 from rag.ats import scan_resume
+from rag.tailor import tailor_resume, TailorError, LLM_MODEL
 
 app = Flask(__name__)
 CORS(app)
@@ -190,6 +192,56 @@ def ats_scan():
         return jsonify({"error": "Could not read this file. It may be damaged or password-protected."}), 400
 
     return jsonify(scan_resume(resume))
+
+# ====================
+# TAILORED RESUME ROUTE
+# ====================
+
+@app.route('/tailor', methods=['POST'])
+def tailor():
+    ''' Rewrites an uploaded resume to fit the job posting at job_url, as a one-page PDF '''
+    file = request.files.get('resume')
+    job_url = (request.form.get('job_url') or '').strip()
+    notes = request.form.get('notes') or ''
+
+    upload_error = resume_upload_error(file)
+    if upload_error:
+        return jsonify({"error": upload_error[0]}), upload_error[1]
+    if not job_url:
+        return jsonify({"error": "Enter a job URL."}), 400
+
+    try:
+        resume_text = read_resume_upload(file)["text"]
+    except Exception:
+        return jsonify({"error": "Could not read the resume file."}), 400
+    if len(resume_text.strip()) < 50:
+        return jsonify({"error": "No text found in the resume. If it is a scanned PDF, upload a text-based PDF or .docx."}), 400
+
+    try:
+        job = fetch_job_posting(job_url)
+        outcome = tailor_resume(resume_text, job, notes)
+    except JobFetchError as err:
+        return jsonify({"error": str(err)}), 422
+    except TailorError as err:
+        return jsonify({"error": str(err)}), err.status
+
+    before = match_resume_to_job(resume_text, job)
+    after = match_resume_to_job(outcome["text"], job)
+    return jsonify({
+        "pdf_base64": base64.b64encode(outcome["pdf"]).decode("ascii"),
+        "job": {"title": job.get("title"), "company": job.get("company"), "url": job_url},
+        "match_before": before["match_percentage"],
+        "match_after": after["match_percentage"],
+        "experience": after["experience"],
+        "changes": outcome["changes"],
+        "kept": outcome["kept"],
+        "removed": outcome["removed"],
+        "added_skills": outcome["added_skills"],
+        "missing_skills": outcome["missing_skills"],
+        "needs_metric": outcome["needs_metric"],
+        "untouched_paragraphs": outcome["untouched_paragraphs"],
+        "model": LLM_MODEL,
+    })
 
 
 if __name__ == "__main__":

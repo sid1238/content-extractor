@@ -32,6 +32,7 @@ PyPDF2==3.0.1
 python-docx==1.2.0
 PyYAML==6.0.2
 regex==2025.8.29
+reportlab==5.1.0
 requests==2.32.5
 safetensors==0.6.2
 scikit-learn==1.7.1

@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import axios from "axios";
 import AtsReport from "./AtsReport";
+import TailorResult from "./TailorResult";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://127.0.0.1:5000";
 const ACCEPTED = [".pdf", ".docx"];
@@ -119,12 +120,16 @@ function ResumeMatcher() {
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
   const [report, setReport] = useState(null);
+  const [notes, setNotes] = useState("");
+  const [tailoring, setTailoring] = useState(false);
+  const [tailored, setTailored] = useState(null);
   const inputRef = useRef(null);
 
   const urlOk = isValidUrl(jobUrl.trim());
-  const busy = loading || scanning;
+  const busy = loading || scanning || tailoring;
   const canStart = Boolean(file) && urlOk && !busy;
   const canScan = Boolean(file) && !busy;
+  const canTailor = Boolean(file) && urlOk && !busy;
 
   const pickFile = (picked) => {
     if (!picked) return;
@@ -144,6 +149,7 @@ function ResumeMatcher() {
     setError("");
     setResult(null);
     setReport(null);
+    setTailored(null);
     setFile(picked);
   };
 
@@ -180,6 +186,38 @@ function ResumeMatcher() {
     } finally {
       setScanning(false);
     }
+  };
+
+  const startTailor = async () => {
+    if (!canTailor) return;
+    setTailoring(true);
+    setError("");
+    setTailored(null);
+    const form = new FormData();
+    form.append("resume", file);
+    form.append("job_url", jobUrl.trim());
+    form.append("notes", notes);
+    try {
+      const { data } = await axios.post(`${API_BASE}/tailor`, form);
+      setTailored(data);
+    } catch (err) {
+      setError(err.response?.data?.error || "Could not reach the server. Is the backend running?");
+    } finally {
+      setTailoring(false);
+    }
+  };
+
+  const downloadTailored = () => {
+    const bytes = Uint8Array.from(atob(tailored.pdf_base64), (c) => c.charCodeAt(0));
+    const url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${file.name.slice(0, file.name.lastIndexOf("."))}_tailored.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // Revoking straight away can cancel the download before the browser has started it.
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
   };
 
   return (
@@ -227,7 +265,7 @@ function ResumeMatcher() {
             type="url"
             placeholder="https://company.com/careers/job/123"
             value={jobUrl}
-            onChange={(e) => { setJobUrl(e.target.value); setResult(null); }}
+            onChange={(e) => { setJobUrl(e.target.value); setResult(null); setTailored(null); }}
             onKeyDown={(e) => e.key === "Enter" && startMatch()}
           />
           {jobUrl && !urlOk && <span className="field-hint">Enter a full link starting with http:// or https://</span>}
@@ -251,9 +289,31 @@ function ResumeMatcher() {
         <p className="matcher-hint">You can scan your resume now. Enter a job URL to start a match.</p>
       ) : null}
 
+      <div className="tailor-panel">
+        <label className="notes-field">
+          <span className="label">Real results to include (optional)</span>
+          <textarea
+            rows={2}
+            placeholder="Only facts you can back up, e.g. Dashboard used by 20 engineers. Cut report time from 3 hours to 20 minutes."
+            value={notes}
+            onChange={(e) => { setNotes(e.target.value); setTailored(null); }}
+          />
+        </label>
+        <div className="tailor-actions">
+          <button className="btn-primary" onClick={startTailor} disabled={!canTailor}>
+            {tailoring ? <><span className="spinner" /> Generating…</> : "Generate tailored resume"}
+          </button>
+          <button className="btn-secondary" onClick={downloadTailored} disabled={!tailored}>
+            Download resume
+          </button>
+        </div>
+      </div>
+
+      {tailoring && <p className="matcher-hint">Rewriting your resume on this computer. This can take several minutes.</p>}
       {error && <div className="matcher-error">{error}</div>}
       {result && <MatchResult result={result} />}
       {report && <AtsReport report={report} />}
+      {tailored && <TailorResult result={tailored} />}
     </div>
   );
 }
